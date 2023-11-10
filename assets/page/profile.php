@@ -8,13 +8,16 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Jura:wght@300;400;600;700&display=swap" rel="stylesheet">
     <title>Document</title>
+    <script src="assets/js/profile.js" defer></script>
 </head>
 
 <body>
 
     <main>
         <?
-        if (isset($_SESSION['USER'])) { ?>
+        if (isset($_SESSION['USER'])) {
+            $user_id = $USER['id'];
+            ?>
             <div class="profile">
                 <div class="container">
                     <div class="profile_content">
@@ -23,7 +26,7 @@
                             <div class="p_tub" data-tab="#basket"><a href="" class="link">Корзина</a></div>
                             <div class="p_tub" data-tab="#buy"><a href="" class="link">Заказы</a></div>
                         </div>
-                        <div class="content p_info active " id="info">
+                        <div class="content p_info  " id="info">
                             <div class="profile_img"><img src="assets/img/icon/log_in.svg" alt="" class="img"></div>
                             <div class="profile_info">
                                 <p class="text">
@@ -44,7 +47,7 @@
                                 </p>
                             </div>
                         </div>
-                        <div class="content basket_block" id="basket">
+                        <div class="content basket_block active" id="basket">
                             <h2 class="title">Корзина</h2>
                             <div class="categories">
                                 <div class="category">
@@ -60,43 +63,94 @@
                                     <p class="text">Доставлено</p>
                                 </div>
                             </div>
-                            <div class="basket">
-                                <div class="basket_item">
-                                    <img src="assets/img/item/item.png" alt="" class="img">
-                                    <div class="item_info">
-                                        <p class="text">Название продукта</p>
-                                        <p class="text color">катгория</p>
-                                        <p class="text">описание товара</p>
-                                        <p class="text color">Цена:1500₽.</p>
-                                        <div class="count">
 
-                                            <div class="flex items-center gap-4 text-2xl counter">
-                                                <p
-                                                    class="counter-button hover:bg-gray-300 default-transition minus-el select-none">
-                                                    -</p>
-                                                <label for="#count"
-                                                    class="flex justify-center py-2 px-1 output-el w-5">1</label>
-                                                <input id="count" type="hidden" value="" readonly name="counts[]">
-                                                <input type="hidden" value="" readonly name="cart_id">
-                                                <input type="hidden" readonly name="cart_orders[]" value=""
-                                                    class="flex justify-center py-2 px-1 output-el w-5" />
-                                                <p
-                                                    class="counter-button hover:bg-gray-300 default-transition plus-el select-none">
-                                                    +</p>
+                            <?
+                            $sql = "SELECT * FROM `cart` WHERE `user_id` = user_id AND `status` = 2 ORDER BY `id` DESC LIMIT 1";
+                            $cart = $connect->query($sql)->fetch(PDO::FETCH_ASSOC);
+                            $cart_id = $cart['id'];
+                            if ($cart) {
+                                $sql = "SELECT product.id, cart_order.count, product.name, product.price, product.type, img, cart_order.id AS cart_order_id
+                                FROM `cart_order` LEFT JOIN `product` ON cart_order.product_id = product.id WHERE cart_order.cart_id = $cart_id";
+                                $products = $connect->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+                                $full_cost = 0;
+                                $allCount = 0;
+                            }
+                            if (isset($_GET['deleteToCart'])) {
+                                $cart_order_id = $_GET['deleteToCart'];
+                                $sql = "DELETE FROM cart_order WHERE `id` = $cart_order_id";
+                                $connect->query($sql);
+                                /* echo '<script>document.location.href="?page=main"</script>'; */
+                            }
+                            ?>
+                            <div class="basket">
+                                <?
+                                if (isset($products)) {
+                                    foreach ($products as $product) {
+                                        $type = $product['type'];
+                                        $sql = "SELECT * FROM product_types WHERE id = $type";
+                                        $type = $connect->query($sql)->fetch();
+                                        ?>
+                                        <div class="basket_item">
+                                            <img src="assets/img/item/item.png" alt="" class="img">
+                                            <div class="item_info">
+                                                <p class="text">
+                                                    <?= $product['name'] ?>
+                                                </p>
+                                                <p class="text color">
+                                                    <?= $type['name'] ?>
+                                                </p>
+                                                <p class="text">
+                                                    <?= $product['description'] ?>
+                                                </p>
+                                                <p class="text color">Цена:
+                                                    <?= $product['price'] ?>₽.
+                                                </p>
+                                                <div class="count">
+
+                                                    <div class="flex items-center gap-4 text-2xl counter">
+                                                        <p
+                                                            class="counter-button hover:bg-gray-300 default-transition minus-el select-none">
+                                                            -</p>
+                                                        <label for="#count"
+                                                            class="flex justify-center py-2 px-1 output-el w-5">1</label>
+                                                        <input id="count" type="hidden" value="" readonly name="counts[]">
+                                                        <input type="hidden" value="" readonly name="cart_id">
+                                                        <input type="hidden" readonly name="cart_orders[]" value=""
+                                                            class="flex justify-center py-2 px-1 output-el w-5" />
+                                                        <p
+                                                            class="counter-button hover:bg-gray-300 default-transition plus-el select-none">
+                                                            +</p>
+                                                    </div>
+                                                </div>
                                             </div>
+                                            <button class="btn_icon"
+                                                onclick="location.href='?page=profile&id=<?= $USER['id'] ?>&deleteToCart=<?= $product['cart_order_id'] ?>'"><img
+                                                    src="assets/img/icon/ic_baseline-delete.svg" alt="" class="icon"></button>
                                         </div>
-                                    </div>
-                                    <button class="btn_icon"><img src="assets/img/icon/ic_baseline-delete.svg" alt=""
-                                            class="icon"></button>
-                                </div>
+                                        <?php
+                                        $full_cost = $full_cost + $product['price'];
+                                        $allCount++;
+                                    }
+                                } else { ?>
+                                    <p>Корзина пуста.</p>
+                                <?php }
+                                ?>
                             </div>
                             <div class="end">
+
+                                <?
+
+                                ?>
                                 <h3 class="title">В корзине:</h3>
                                 <div class="end_item">
-                                    <p class="text">Колчество: шт</p>
+                                    <p class="text">Колчество:
+                                        <? echo $allCount ?>шт
+                                    </p>
                                 </div>
                                 <div class="end_item">
-                                    <p class="text">Сумма:₽</p>
+                                    <p class="text">Сумма:
+                                        <? echo $full_cost ?>₽
+                                    </p>
                                 </div>
                                 <div class="end_btn">
                                     <button class="btn">Оформить</button>
@@ -227,9 +281,6 @@
             </div>
         </div>
     </footer> -->
-    <script src="assets/js/profile.js">
-
-    </script>
 </body>
 
 </html>
