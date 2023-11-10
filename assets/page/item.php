@@ -152,8 +152,56 @@
                                     </button>
                                 </div>
                             <? }
+
+                            if (isset($_POST['addToCard'])) {
+                                $product_id = $_POST['product_id'];
+                                $user_id = $USER['id'];
+                                $sql = "SELECT * FROM `cart` WHERE `user_id` = $user_id AND `status` = 2 ORDER BY `id` DESC LIMIT 1";
+                                $cart = $connect->query($sql)->fetch(PDO::FETCH_ASSOC);
+                                var_dump($cart);
+                                /* echo '<script>document.location.href="?page=error"</script>'; */
+                                if (!$cart) {
+                                    $sql = "INSERT INTO `cart` (`user_id`, `status`, `created_at`, `updated_at`) VALUES ('$user_id', '2', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);";
+                                    $cart = $connect->query($sql);
+
+                                    $lastInsertedId = $connect->lastInsertId();
+
+                                    $cart_id = $lastInsertedId;
+
+                                    $sql = "INSERT INTO `cart_order` (`cart_id`, `product_id`, `count`, `created_at`, `updated_at`) VALUES ('$cart_id', '$product_id', '1', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)";
+
+                                    $connect->query($sql);
+
+                                    echo '<script>document.location.href="?page=main#catalog"</script>';
+
+                                } else {
+
+                                    $cart_id = $cart['id'];
+
+                                    $sql = "SELECT * FROM `cart_order` WHERE cart_id = $cart_id AND product_id = $product_id ORDER BY id LIMIT 1";
+
+                                    $check = $connect->query($sql)->fetch(PDO::FETCH_ASSOC);
+
+                                    if (!$check) {
+
+                                        $sql = "INSERT INTO `cart_order` (`cart_id`, `product_id`, `count`, `created_at`, `updated_at`) 
+                                        VALUES ($cart_id, $product_id, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)";
+
+                                        $connect->query($sql);
+
+                                    } else {
+                                        $count = $check['count'] + 1;
+                                        $sql = "UPDATE `cart_order` SET `count` = $count WHERE `cart_order`.`id` = {$check['id']}";
+                                        $connect->query($sql);
+                                    }
+
+                                    echo '<script>document.location.href="?page=main#catalog"</script>';
+
+                                }
+
+                            }
                             ?>
-                            <!--  -->
+
                         </div>
                         <div class="item_description">
                             <p class="text">
@@ -164,8 +212,12 @@
                             <p class="text">
                                 <?= $item['price'] ?> ₽/шт.
                             </p>
-                            <button class="icon_btn"><img src="assets/img/icon/fa6-solid_basket-shopping.svg"
-                                    alt="buyIcon" class="icon"></button>
+                            <form class="w-full" action="" method="post">
+                                <input type="hidden" name="product_id" value="<?= $item['id'] ?>">
+                                <button class="icon_btn" name="addToCard"><img
+                                        src="assets/img/icon/fa6-solid_basket-shopping.svg" alt="buyIcon"
+                                        class="icon"></button>
+                            </form>
                         </div>
                     </div>
                 </div>

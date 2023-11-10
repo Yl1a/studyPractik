@@ -4,7 +4,7 @@ require_once '../database/connection.php';
 
 session_start();
 
-global $connection;
+global $connect;
 
 if (isset($_POST)) {
     $email = $_POST['email'];
